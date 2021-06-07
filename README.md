@@ -1,5 +1,9 @@
 # DB IO
-A project to simulate multiple read/writes to SQL database.
+A project to simulate multiple read/writes to SQL database. The code can handle live update on the database schema, defined on an external source.
+This is achieved by exploiting [Go code generation](https://blog.golang.org/generate) and watching the `type_mappings.json` file. Whenever the file that describes the type mappings is changed, the application re-generate the necessary source codes and re-compile them, then restarts itself inside the Docker container. Note that the Docker container hosting each application **DOES NOT** stop when this happens.
+
+## Items that need to be improved
+- Random value generators returns random values only based on the type, this can be improved to work based on another configuration file to generate random values based on specific event and field (`Time` is an exception and random values for this field follow a patter to makes the simulation feels more natural).
 ## Initial Requirements
 Two applications are needed, DB Writer and DB Reader. These should be separate applications and are expected to be able to run simultaneously.
     

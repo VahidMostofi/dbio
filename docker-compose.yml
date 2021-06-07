@@ -5,3 +5,41 @@ services:
       - database.env
     ports:
       - 9899:5432
+  dbwriter:
+    build: 
+      context: .
+      dockerfile: ./db-writer/Dockerfile
+    restart: on-failure
+    depends_on:
+      - database
+    environment: 
+      - TYPE_MAPPING_PATH=/src/type_mappings.json
+      - DB_HOST=database
+      - DB_PORT=5432
+      - DB_USER=sample_user
+      - DB_PASSWORD=sample_password
+      - DB_DATABASE=sample_database
+      - RANDOM_SEED=2
+      - WRITE_INTERVAL=100ms
+      - CHECK_INTERVAL=1s
+    volumes: 
+      - ./type_mappings.json:/src/type_mappings.json
+  dbreader:
+    build: 
+      context: .
+      dockerfile: ./db-reader/Dockerfile
+    restart: on-failure
+    depends_on:
+      - database
+    environment: 
+      - TYPE_MAPPING_PATH=/src/type_mappings.json
+      - DB_HOST=database
+      - DB_PORT=5432
+      - DB_USER=sample_user
+      - DB_PASSWORD=sample_password
+      - DB_DATABASE=sample_database
+      - RANDOM_SEED=2
+      - READ_INTERVAL=100ms
+      - CHECK_INTERVAL=1s
+    volumes: 
+      - ./type_mappings.json:/src/type_mappings.json

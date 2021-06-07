@@ -1,0 +1,7 @@
+services:
+  database:
+    image: "postgres"
+    env_file:
+      - database.env
+    ports:
+      - 9899:5432

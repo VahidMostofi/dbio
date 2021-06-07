@@ -18,6 +18,12 @@ Use `docker-compose up` to deploy the stack. Use `docker-compose up --build` to 
   - If the `type_mappings.json` is invalid or has errors the application stops running to prevent the system form inserting incorrect values. **This behavior can be easily changed based on the requirements**, for example ignore those errors and using the oldest version.
   - Currently both reader and writer monitor the `type_mappings.json` file and migrate the database, this can be changed so only writer does that.
   - Currently migration is done using `gorm` package but because performance issues resulting from using an ORM, the read and write operations are done using `database\sql` package without any ORM.
+  - Only these types are supported now, more types can be supported with contributing with the team provided the problem statement.
+    - timestamp
+    - int
+    - int64
+    - bigint
+  - Timezone for both applications is set to `TimeZone=UTC` for consistency.
 ### Reader/Writer environment variables
   - `TYPE_MAPPING_PATH` path to type_mappings file
   - `DB_HOST` database host address
@@ -42,6 +48,7 @@ When the stack is up, use `docker-compose scale dbwriter=x dbreader=y` to set th
       - $HOME/data:/var/lib/postgresql/data/ 
   ```
 - While there is no volume mapping by default for the database, if you don't use `docker-compose down` to stop the stack, the database container will probably have the data next time. Be safe and use `docker-compose down` to stop everything gracefully.
+- As this is just a sample, `sslmode` is disable.
 
 ## Items that need to be improved
 - Random value generators returns random values only based on the type, this can be improved to work based on another configuration file to generate random values based on specific event and field (`Time` is an exception and random values for this field follow a patter to makes the simulation feels more natural).

@@ -20,7 +20,7 @@ services:
       - DB_PASSWORD=sample_password
       - DB_DATABASE=sample_database
       - RANDOM_SEED=2
-      - WRITE_INTERVAL=100ms
+      - WRITE_INTERVAL=1s
       - CHECK_INTERVAL=1s
     volumes: 
       - ./type_mappings.json:/src/type_mappings.json

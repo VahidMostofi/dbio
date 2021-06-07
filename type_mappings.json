@@ -1,0 +1,27 @@
+{
+  "mint_coins":{
+     "type":"struct",
+     "type_mapping":{
+        "time":"timestamp",
+        "amount":"bigint",
+        "account_id":"int"
+     }
+  },
+  "transfer_coins":{
+     "type":"struct",
+     "type_mapping":{
+        "time":"timestamp",
+        "amount":"bigint",
+        "from_account_id":"int",
+        "to_account_id":"int"
+     }
+  },
+  "burn_coins":{
+     "type":"struct",
+     "type_mapping":{
+        "time":"timestamp",
+        "amount":"bigint",
+        "account_id":"int"
+     }
+  }
+}

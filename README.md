@@ -1,4 +1,18 @@
-# DB IO
+# DB IO  <!-- omit in toc -->
+
+- [Into](#into)
+- [Features](#features)
+- [How to manage the stack](#how-to-manage-the-stack)
+  - [How to deploy](#how-to-deploy)
+  - [How to undeploy](#how-to-undeploy)
+  - [How to scale](#how-to-scale)
+- [Reader/Writer Apps](#readerwriter-apps)
+  - [Behaviors](#behaviors)
+  - [Reader/Writer environment variables](#readerwriter-environment-variables)
+- [Database](#database)
+- [Items that need to be improved (limitations)](#items-that-need-to-be-improved-limitations)
+- [Problem Statement/ Initial Requirements](#problem-statement-initial-requirements)
+## Into
 A project to simulate multiple read/writes to SQL database. The code can handle live update on the database schema, defined on an external source.
 This is achieved by exploiting [Go code generation](https://blog.golang.org/generate) and watching the `type_mappings.json` file. Whenever the file that describes the type mappings is changed, the application re-generate the necessary source codes and re-compile them, then restarts itself inside the Docker container. Note that the Docker container hosting each application **DOES NOT** stop when this happens.
 
@@ -7,14 +21,18 @@ This is achieved by exploiting [Go code generation](https://blog.golang.org/gene
 - db-writer and db-reader are two separate applications and can **run simultaneously** without any issue.
 - db-writer and db-reader each can **scale up or down** without interrupting other instances.
 
-## How to deploy the stack
+## How to manage the stack
+The stack management is done using docker-compose by default.
+### How to deploy
 Use `docker-compose up` to deploy the stack. Use `docker-compose up --build` to force a build before deploying the stack.
-
-## Reader/Writer
+### How to undeploy
+Use `docker-compose down` to bring down all the containers. For details on the persistent of the data, see [Database](#database) section.
+### How to scale
+When the stack is up, use `docker-compose scale dbwriter=x dbreader=y` to set the number of instances of `dbwriter` to `x` and `dbreader` to `y`. The scaling can be done in both direction without affecting other instances.
+## Reader/Writer Apps
   Both applications run inside Docker containers. Entrypoint for both applications are `run-with-reborn.sh` which both generate necessary codes and build them and then runs the reader/writer. In case of `type_mappings.json` changes (that is mapped through volumes in Docker), both reader and writer detect that, and exit with specific exit code =36. If exit code inside `run-with-reborn.sh` is 36, it redo the process (generate, build, run) otherwise exists.
 
-  ### Behaviors:
-
+  ### Behaviors
   - If the `type_mappings.json` is invalid or has errors the application stops running to prevent the system form inserting incorrect values. **This behavior can be easily changed based on the requirements**, for example ignore those errors and using the oldest version.
   - Currently both reader and writer monitor the `type_mappings.json` file and migrate the database, this can be changed so only writer does that.
   - Currently migration is done using `gorm` package but because performance issues resulting from using an ORM, the read and write operations are done using `database\sql` package without any ORM.
@@ -36,10 +54,7 @@ Use `docker-compose up` to deploy the stack. Use `docker-compose up --build` to 
   - `READ_INTERVAL` only for the db-reader, how often the reader should read values from the database? examples: `4s`, `100ms`, `5m`, `4s100ms`
   - `WRITE_INTERVAL` only for the db-writer, how often the writer should read values from the database? examples: `4s`, `100ms`, `5m`, `4s100ms`
 
-### How to scale
-When the stack is up, use `docker-compose scale dbwriter=x dbreader=y` to set the number of instances of `dbwriter` to `x` and `dbreader` to `y`. The scaling can be done in both direction without affecting other instances.
-
-### Database
+## Database
 - Use `database.env` to configure the database. The existing version is a sample to make `docker-compose` work. 
 - Port mapping in `docker-compose` file is due debugging and developing, you can remove that if you don't want to connect to the database from your local machine.
 - Currently no volume is mounted for the database in docker-compose, add the following lines to have persistent data (replace `$HOME/data` with your desired path on the local system).
@@ -50,9 +65,9 @@ When the stack is up, use `docker-compose scale dbwriter=x dbreader=y` to set th
 - While there is no volume mapping by default for the database, if you don't use `docker-compose down` to stop the stack, the database container will probably have the data next time. Be safe and use `docker-compose down` to stop everything gracefully.
 - As this is just a sample, `sslmode` is disable.
 
-## Items that need to be improved
+## Items that need to be improved (limitations)
 - Random value generators returns random values only based on the type, this can be improved to work based on another configuration file to generate random values based on specific event and field (`Time` is an exception and random values for this field follow a patter to makes the simulation feels more natural).
-## Initial Requirements
+## Problem Statement/ Initial Requirements
 Two applications are needed, DB Writer and DB Reader. These should be separate applications and are expected to be able to run simultaneously.
     
 - **DB Writer**:

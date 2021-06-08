@@ -49,7 +49,8 @@ type BurnCoinsEvent struct {
 The field CreatedAt is added to all event types. For each event type, other than the `Event interface` functions, two other functions are generated:
 
 - `TableName() string` used by the `gorm` library to set the name of the table. The original name provided in the json file is used for the table name.
-- `NewRandom{{$EventName}}Event()` that returns a new instance with random values.
+- `NewRandom{{$EventName}}Event(*rand.Rand)` that returns a new instance with random values using the *rand.Rand that is provided to it.
+  - Random functions inside implementation of these functions are provided by the caller within the same package. This behavior should be improved.
 
 **The implementation of Retrieve and Store use `database/sql` because it result in better performance in compare to `gorm`**.
 

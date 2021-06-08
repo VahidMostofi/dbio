@@ -75,6 +75,6 @@ func (rw *RandomWriter) generateRandomEvent() Event {
 	r := rw.rand.Int()
 	// choose one of the events randomly and select it's randomInstanceConstructor
 	coshenFunction := RandomGeneratorConstructors[rw.events[r%len(rw.events)]]
-	event := coshenFunction()
+	event := coshenFunction(rw.rand)
 	return event
 }

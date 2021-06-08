@@ -278,6 +278,7 @@ import (
 	"gorm.io/driver/postgres"
 	"time"
 	"gorm.io/gorm"
+	"math/rand"
 )
 
 // TypeMappingSource stores the value from the environment 
@@ -288,7 +289,7 @@ const TypeMappingSource = "{{$.TypeMappingSource}}"
 // RandomGeneratorConstructors a map from event name to the 
 // function that can generate a new random instance of that 
 // event type
-var RandomGeneratorConstructors = map[string]func() Event{{"{"}} {{ range $_, $t := $.Types }}
+var RandomGeneratorConstructors = map[string]func(*rand.Rand) Event{{"{"}} {{ range $_, $t := $.Types }}
 "{{$t.OriginalName}}":NewRandom{{$t.Name}}Event, {{end}} {{"}"}}
 
 // Event is the contaract for storing and retrieving events form a database
@@ -320,11 +321,11 @@ func (o {{$t.Name}}Event ) TableName() string {
 
 // NewRandom{{$t.Name}}Event() genrates a new instance
 // of {{$t.Name}}Event and returns is as an Event
-func NewRandom{{$t.Name}}Event() Event{
+func NewRandom{{$t.Name}}Event(r *rand.Rand) Event{
 	e := &{{$t.Name}}Event{{"{}"}}
 	{{ range $_, $field := $t.Fields}}
 	{{- if $field.RandomFunctionName -}}
-	e.{{ $field.Name }} = {{ $field.RandomFunctionName }}()
+	e.{{ $field.Name }} = {{ $field.RandomFunctionName }}(r)
 	{{end -}}
 	{{ end }}
 	e.CreatedAt = time.Now().UnixNano() / int64(time.Millisecond)

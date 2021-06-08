@@ -79,9 +79,9 @@ func (rr *RandomReader) generateRandomQueryParameters() (Event, int64, int64) {
 
 	r := rr.rand.Int()
 	// choose one of the events randomly and create an instance
-	event := RandomGeneratorConstructors[rr.events[r%len(rr.events)]]()
-	start := RandomTimeValue()
-	end := RandomTimeValue()
+	event := RandomGeneratorConstructors[rr.events[r%len(rr.events)]](rr.rand)
+	start := RandomTimeValue(rr.rand)
+	end := RandomTimeValue(rr.rand)
 
 	start, end = Min(start, end), Max(start, end)
 

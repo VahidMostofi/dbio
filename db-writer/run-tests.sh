@@ -6,7 +6,7 @@ export TYPE_MAPPING_PATH=../type_mappings.json && go generate
 
 if [ $? -eq 0 ]
 then
-  go test
+  go test -v
 else
 echo Failed to generate
   exit 1

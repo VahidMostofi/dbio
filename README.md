@@ -1,6 +1,6 @@
 # DB IO  <!-- omit in toc -->
 
-- [Into](#into)
+- [Intro](#intro)
 - [Features](#features)
 - [How to manage the stack](#how-to-manage-the-stack)
   - [How to deploy](#how-to-deploy)
@@ -12,7 +12,7 @@
 - [Database](#database)
 - [Items that need to be improved (limitations)](#items-that-need-to-be-improved-limitations)
 - [Problem Statement/ Initial Requirements](#problem-statement-initial-requirements)
-## Into
+## Intro
 A project to simulate multiple read/writes to SQL database. The code can handle live update on the database schema, defined on an external source.
 This is achieved by exploiting [Go code generation](https://blog.golang.org/generate) and watching the `type_mappings.json` file. Whenever the file that describes the type mappings is changed, the application re-generate the necessary source codes and re-compile them, then restarts itself inside the Docker container. Note that the Docker container hosting each application **DOES NOT** stop when this happens.
 

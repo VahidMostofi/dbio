@@ -3,7 +3,8 @@ package main
 import (
 	"context"
 	"database/sql"
-	"log"
+	"fmt"
+	"io"
 	"math/rand"
 	"sort"
 	"time"
@@ -23,12 +24,17 @@ func NewRandomReader(db *sql.DB, seed int64) *RandomReader {
 	rr.db = db
 	rr.rand = rand.New(rand.NewSource(seed))
 
-	// list all events
+	// list all events using RandomGeneratorConstructors that is an auto-generated map
+	// from event name to a function that generates random instance of that event
 	rr.events = make([]string, 0)
 	for event := range RandomGeneratorConstructors {
 		rr.events = append(rr.events, event)
 	}
 
+	// because the events are created based on a map
+	// we need to ensure they have the same order if
+	// it is computed multiple times over different
+	// instances
 	rr.events = sort.StringSlice(rr.events)
 
 	return rr
@@ -38,8 +44,11 @@ func NewRandomReader(db *sql.DB, seed int64) *RandomReader {
 // It would return if ctx.Done is fed
 // Any error occuring during Read operations would be reported to errCh
 // Any error reported by the ctx would be returned by the function on exit.
-func (rr *RandomReader) Read(ctx context.Context, interval time.Duration, errCh chan<- error) error {
+func (rr *RandomReader) Read(ctx context.Context, interval time.Duration, statsWriter io.Writer, errCh chan<- error) error {
 	ticker := time.NewTicker(interval)
+	logTicker := time.NewTicker(time.Duration(10) * time.Second)
+	counter := 0
+	totalRead := 0
 	for {
 		select {
 		case <-ticker.C:
@@ -48,11 +57,14 @@ func (rr *RandomReader) Read(ctx context.Context, interval time.Duration, errCh 
 			if err != nil {
 				errCh <- err
 			}
-
-			log.Printf("retrieved %d records.\n", len(events))
-			if len(events) > 0 {
-				log.Println(events[0])
+			totalRead += len(events)
+			counter++
+		case <-logTicker.C:
+			if statsWriter != nil {
+				fmt.Fprintf(statsWriter, "ran %d queries in the last 10 seconds and read %d events in total\n.", counter, totalRead)
 			}
+			counter = 0
+			totalRead = 0
 		case <-ctx.Done():
 			return ctx.Err()
 		}

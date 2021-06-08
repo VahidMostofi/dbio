@@ -13,9 +13,6 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	_ "github.com/proullon/ramsql/driver"
 	"github.com/stretchr/testify/assert"
-	"gorm.io/driver/postgres"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 )
 
 func listEvents(t *testing.T) []string {
@@ -44,19 +41,7 @@ func TestShouldMigrateSuccessfully(t *testing.T) {
 	}
 	defer db.Close()
 
-	dialector := postgres.New(postgres.Config{
-		DSN:                  "sqlmock_db_0",
-		DriverName:           "postgres",
-		Conn:                 db,
-		PreferSimpleProtocol: true,
-	})
-
-	gdb, err := gorm.Open(dialector, &gorm.Config{})
-	if err != nil {
-		t.Errorf("Failed to open gorm db, got error: %v", err)
-	}
-
-	err = Migrate(gdb)
+	err = Migrate(db, "sqlmock_db_0")
 	if err != nil {
 		log.Fatalf("error while migrating database: %s", err.Error())
 	}
@@ -82,12 +67,7 @@ func TestShouldWriteSuccessfully(t *testing.T) {
 	}
 	defer db.Close()
 
-	gdb, err := gorm.Open(sqlite.Open("./test.db"), &gorm.Config{})
-	if err != nil {
-		t.Errorf("Failed to open gorm db, got error: %v", err)
-	}
-
-	err = Migrate(gdb)
+	err = Migrate(db, "./test.db")
 	if err != nil {
 		log.Fatalf("error while migrating database: %s", err.Error())
 	}
@@ -99,7 +79,7 @@ func TestShouldWriteSuccessfully(t *testing.T) {
 	waitInterval, _ := time.ParseDuration("3s")
 	ticker := time.NewTicker(waitInterval)
 	ctx, cnF := context.WithCancel(context.Background())
-	go rw.Write(ctx, writeInterval, errCh)
+	go rw.Write(ctx, writeInterval, nil, errCh)
 	select {
 	case err := <-errCh:
 		t.Fatal(err)

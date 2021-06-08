@@ -275,6 +275,7 @@ import (
 	"context"
 	"database/sql"
 	"database/sql/driver"
+	"gorm.io/driver/postgres"
 	"time"
 	"gorm.io/gorm"
 )
@@ -320,10 +321,23 @@ func NewRandom{{$t.Name}}Event() Event{
 
 var RandomGeneratorConstructors = map[string]func() Event{{"{"}} {{ range $_, $t := $.Types }}"{{$t.OriginalName}}":NewRandom{{$t.Name}}Event, {{end}} {{"}"}}
 
-func Migrate(db *gorm.DB) error{
+func Migrate(db *sql.DB, dsn string) error{
 	var err error
+
+	dialector := postgres.New(postgres.Config{
+		DSN:                  dsn,
+		DriverName:           "postgres",
+		Conn:                 db,
+		PreferSimpleProtocol: true,
+	})
+
+	gdb, err := gorm.Open(dialector, &gorm.Config{})
+	if err != nil {
+		return err
+	}
+
 	{{- range $_, $t := $.Types }}
-		err = db.AutoMigrate(&{{ $t.Name }}Event{})
+		err = gdb.AutoMigrate(&{{ $t.Name }}Event{})
 		if err != nil{
 			return err
 		}

@@ -280,7 +280,16 @@ import (
 	"gorm.io/gorm"
 )
 
+// TypeMappingSource stores the value from the environment 
+// variable that refer to type_mapping file other tools,
+// such as monitoring system can exploit this.
 const TypeMappingSource = "{{$.TypeMappingSource}}"
+
+// RandomGeneratorConstructors a map from event name to the 
+// function that can generate a new random instance of that 
+// event type
+var RandomGeneratorConstructors = map[string]func() Event{{"{"}} {{ range $_, $t := $.Types }}
+"{{$t.OriginalName}}":NewRandom{{$t.Name}}Event, {{end}} {{"}"}}
 
 // Event is the contaract for storing and retrieving events form a database
 // all event types implement using auto-generated codes.
@@ -294,6 +303,7 @@ type Event interface{
 }
 
 {{ range $_, $t := $.Types }}
+// {{ $t.Name }}Event coresponds to the type {{$t.OriginalName}} in the type_mappings
 type {{ $t.Name }}Event struct {
 	{{- range $_, $field := $t.Fields}}
 
@@ -302,10 +312,14 @@ type {{ $t.Name }}Event struct {
 	{{ end }}
 }
 
+// TableName returns the desired name for the table,
+// used by the GORM for setting the table name.
 func (o {{$t.Name}}Event ) TableName() string {
 	return "{{$t.OriginalName}}"
 }
 
+// NewRandom{{$t.Name}}Event() genrates a new instance
+// of {{$t.Name}}Event and returns is as an Event
 func NewRandom{{$t.Name}}Event() Event{
 	e := &{{$t.Name}}Event{{"{}"}}
 	{{ range $_, $field := $t.Fields}}
@@ -319,8 +333,8 @@ func NewRandom{{$t.Name}}Event() Event{
 
 {{- end }}
 
-var RandomGeneratorConstructors = map[string]func() Event{{"{"}} {{ range $_, $t := $.Types }}"{{$t.OriginalName}}":NewRandom{{$t.Name}}Event, {{end}} {{"}"}}
-
+// Migrate uses GORM to migrate the structs defined
+// above. Calling this method multiple times is fine.
 func Migrate(db *sql.DB, dsn string) error{
 	var err error
 
@@ -337,6 +351,7 @@ func Migrate(db *sql.DB, dsn string) error{
 	}
 
 	{{- range $_, $t := $.Types }}
+	  // migrating {{ $t.Name }}Event
 		err = gdb.AutoMigrate(&{{ $t.Name }}Event{})
 		if err != nil{
 			return err

@@ -16,7 +16,7 @@
 - [Problem Statement/ Initial Requirements](#problem-statement-initial-requirements)
 ## Intro
 A project to simulate multiple read/writes to SQL database. The code can handle live update on the database schema, defined on an external source.
-This is achieved by exploiting [Go code generation](https://blog.golang.org/generate) and watching the `type_mappings.json` file. Whenever the file that describes the type mappings is changed, the application re-generate the necessary source codes and re-compile them, then restarts itself inside the Docker container. Note that the Docker container hosting each application **DOES NOT** stop when this happens.
+This is achieved by exploiting [Go code generation](https://blog.golang.org/generate) and watching the `type_mappings.json` file. Whenever the file that describes the type mappings is changed, the application re-generate the necessary source codes and re-compile them, then restarts itself inside the Docker container. Note that the Docker container hosting each application **DOES NOT** stop when this happens. To read more about the details of the code generator, [checkout its readme](generator/README.md).
 
 ## Features
 - `type_mappings.json` defines the list of events and fields of events. While the stack is up and running (in docker-compose), changing the `type_mappings.json` file would result in the system updating itself (without stopping the containers). It updates both the struct definitions and database tables **on the fly**.

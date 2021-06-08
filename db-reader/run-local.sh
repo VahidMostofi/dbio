@@ -1,6 +1,7 @@
 #!/bin/bash
 set -a
 source dev.env
+cp ../generator/*.go .
 cp ../common/*.go .
 
 go generate

@@ -1,5 +1,6 @@
 #!/bin/bash
 
+cp ../generator/*.go .
 cp ../common/*.go .
 
 export TYPE_MAPPING_PATH=../type_mappings.json && go generate

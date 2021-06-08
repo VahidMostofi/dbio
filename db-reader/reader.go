@@ -61,7 +61,7 @@ func (rr *RandomReader) Read(ctx context.Context, interval time.Duration, statsW
 			counter++
 		case <-logTicker.C:
 			if statsWriter != nil {
-				fmt.Fprintf(statsWriter, "ran %d queries in the last 10 seconds and read %d events in total\n.", counter, totalRead)
+				fmt.Fprintf(statsWriter, "ran %d queries in the last 10 seconds and read %d events in total.\n", counter, totalRead)
 			}
 			counter = 0
 			totalRead = 0

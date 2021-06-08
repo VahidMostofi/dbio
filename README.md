@@ -6,10 +6,12 @@
   - [How to deploy](#how-to-deploy)
   - [How to undeploy](#how-to-undeploy)
   - [How to scale](#how-to-scale)
+  - [Where is the output?](#where-is-the-output)
 - [Reader/Writer Apps](#readerwriter-apps)
   - [Behaviors](#behaviors)
   - [Reader/Writer environment variables](#readerwriter-environment-variables)
 - [Database](#database)
+  - [Running raw SQL commands](#running-raw-sql-commands)
 - [Items that need to be improved (limitations)](#items-that-need-to-be-improved-limitations)
 - [Problem Statement/ Initial Requirements](#problem-statement-initial-requirements)
 ## Intro
@@ -29,6 +31,23 @@ Use `docker-compose up` to deploy the stack. Use `docker-compose up --build` to 
 Use `docker-compose down` to bring down all the containers. For details on the persistent of the data, see [Database](#database) section.
 ### How to scale
 When the stack is up, use `docker-compose scale dbwriter=x dbreader=y` to set the number of instances of `dbwriter` to `x` and `dbreader` to `y`. The scaling can be done in both direction without affecting other instances.
+### Where is the output?
+Each instance of the reader and writer report what they have done in the past 10 seconds to the standard output (the medium can easily be changed). These should be visible for each instance by the `docker-compose` logs by default. In future this report can be provided through a separate API for health check.
+
+Writer's report format:
+```
+wrote <number of insert queries> events in the past 10 seconds.
+```
+Reader's report format:
+```
+ran <number of select queries> queries in the last 10 seconds and read <total retrieved events> events in total.
+```
+
+If you want to see number of rows for all tables:
+```
+docker-compose exec database psql sample_database sample_user -c "SELECT schemaname relname, n_live_tup FROM pg_stat_user_tables ORDER BY n_live_tup DESC;"
+```
+
 ## Reader/Writer Apps
   Both applications run inside Docker containers. Entrypoint for both applications are `run-with-reborn.sh` which both generate necessary codes and build them and then runs the reader/writer. In case of `type_mappings.json` changes (that is mapped through volumes in Docker), both reader and writer detect that, and exit with specific exit code =36. If exit code inside `run-with-reborn.sh` is 36, it redo the process (generate, build, run) otherwise exists.
 
@@ -62,6 +81,20 @@ When the stack is up, use `docker-compose scale dbwriter=x dbreader=y` to set th
   volumes:
       - $HOME/data:/var/lib/postgresql/data/ 
   ```
+
+### Running raw SQL commands
+In case you want to execute custom sql command on the database:
+
+Interactive mode:
+```
+docker-compose exec database psql sample_database sample_user
+```
+
+Single command:
+```
+docker-compose exec database psql sample_database sample_user -c "SELECT * FROM transfer_coins"
+```
+
 - While there is no volume mapping by default for the database, if you don't use `docker-compose down` to stop the stack, the database container will probably have the data next time. Be safe and use `docker-compose down` to stop everything gracefully.
 - As this is just a sample, `sslmode` is disable.
 

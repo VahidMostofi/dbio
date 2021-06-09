@@ -45,6 +45,13 @@ var GoNullableTypeMappings = map[string]string{
 	"bigint":    "sql.NullInt64",
 }
 
+// UnknownTypeErr occurs when the type used for field in the type mapping
+// file is unknown.
+var UnknownTypeErr = fmt.Errorf("unknown type")
+
+// NoTimeFieldErr occurs when an event has not field "time".
+var NoTimeFieldErr = fmt.Errorf("no time field error")
+
 // typeDefinition features for a type, many of the feature can be generated based on
 // each other, to simplify the code template, they are stored to be used then.
 type typeDefinition struct {
@@ -166,20 +173,55 @@ func die(message string) {
 	log.Fatal(message)
 }
 
+// typeMapping is format of the type_mapping's individual events,
+// used for parsing the file
+type typeMapping struct {
+	Type    string            `json:"type"`
+	Mapping map[string]string `json:"type_mapping"`
+}
+
+// validateTypeMappings validates:
+// - all events need to have time field
+// - all field for all events need to have valid type
+func validateTypeMappings(in map[string]typeMapping) error {
+	// validating
+	for eventName, mappingDetails := range in {
+		timeExists := false
+
+		for fieldName, fieldType := range mappingDetails.Mapping {
+			if fieldName == "time" {
+				timeExists = true
+			}
+
+			if _, exists := GoTypeMappings[fieldType]; !exists {
+				return fmt.Errorf("error validating %s.%s: %w", eventName, fieldName, UnknownTypeErr)
+			}
+		}
+
+		if !timeExists {
+			return fmt.Errorf("error validating %s: %w", eventName, NoTimeFieldErr)
+		}
+	}
+	return nil
+}
+
 // readAndParseTypeMapping reads the type mapping and generates the Types
 func readAndParseTypeMapping(r io.Reader) (*types, error) {
-	type TypeMapping struct {
-		Type    string            `json:"type"`
-		Mapping map[string]string `json:"type_mapping"`
-	}
-
-	mappings := make(map[string]TypeMapping)
+	// reading
+	mappings := make(map[string]typeMapping)
 	decoder := json.NewDecoder(r)
 	err := decoder.Decode(&mappings)
 	if err != nil {
 		return nil, err
 	}
 
+	// validate
+	err = validateTypeMappings(mappings)
+	if err != nil {
+		return nil, err
+	}
+
+	// parsing
 	ts := make(map[string]typeDefinition)
 	for eventName, mappingDetails := range mappings {
 		camelCaseName := strcase.ToCamel(eventName)

@@ -14,4 +14,6 @@ echo Failed to generate
 fi
 
 rm test.db
+rm test-no-duplicate.db
+rm test-should-migrate.db
 ./remove-commons.sh

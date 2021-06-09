@@ -8,6 +8,7 @@
   - [How to scale](#how-to-scale)
   - [Where is the output?](#where-is-the-output)
 - [Reader/Writer Apps](#readerwriter-apps)
+  - [Handling Duplicate Rows](#handling-duplicate-rows)
   - [Behaviors](#behaviors)
   - [Reader/Writer environment variables](#readerwriter-environment-variables)
 - [Database](#database)
@@ -50,6 +51,9 @@ docker-compose exec database psql sample_database sample_user -c "SELECT scheman
 
 ## Reader/Writer Apps
   Both applications run inside Docker containers. Entrypoint for both applications are `run-with-reborn.sh` which both generate necessary codes and build them and then runs the reader/writer. In case of `type_mappings.json` changes (that is mapped through volumes in Docker), both reader and writer detect that, and exit with specific exit code =36. If exit code inside `run-with-reborn.sh` is 36, it redo the process (generate, build, run) otherwise exists.
+
+  ### Handling Duplicate Rows
+  - To handle "no rows with duplicate values", a unique index across all fields is added for each event table. With assumption that only fields are added to the each event table, all previous indexes are removed when new index is added when migrating. If this behavior is not desired, it can easily be changed to keeping all the old indexes. Currently, on conflict when inserting, we ignore duplicate rows, this seemed like a reasonable choice based on the reason behind of having duplicate rows.
 
   ### Behaviors
   - If the `type_mappings.json` is invalid or has errors the application stops running to prevent the system form inserting incorrect values. **This behavior can be easily changed based on the requirements**, for example ignore those errors and using the oldest version.

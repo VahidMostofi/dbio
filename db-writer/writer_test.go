@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
+	"math/rand"
 	"testing"
 	"time"
 
@@ -35,7 +35,7 @@ func listEvents(t *testing.T) []string {
 
 func TestShouldMigrateSuccessfully(t *testing.T) {
 
-	db, err := sql.Open("ramsql", "TestShouldMigrateSuccessfully")
+	db, err := sql.Open("sqlite3", "./test-should-migrate.db")
 	if err != nil {
 		t.Fatalf("sql.Open : Error : %s\n", err)
 	}
@@ -43,7 +43,7 @@ func TestShouldMigrateSuccessfully(t *testing.T) {
 
 	err = Migrate(db, "sqlmock_db_0")
 	if err != nil {
-		log.Fatalf("error while migrating database: %s", err.Error())
+		t.Fatalf("error while migrating database: %s", err.Error())
 	}
 
 	var count int
@@ -69,7 +69,7 @@ func TestShouldWriteSuccessfully(t *testing.T) {
 
 	err = Migrate(db, "./test.db")
 	if err != nil {
-		log.Fatalf("error while migrating database: %s", err.Error())
+		t.Fatalf("error while migrating database: %s", err.Error())
 	}
 
 	rw := NewRandomWriter(db, 2)
@@ -97,5 +97,44 @@ func TestShouldWriteSuccessfully(t *testing.T) {
 		total += count
 	}
 	assert.Greater(t, total, 12)
+
+}
+
+func TestNoDuplicate(t *testing.T) {
+
+	db, err := sql.Open("sqlite3", "./test-no-duplicate.db")
+	if err != nil {
+		t.Fatalf("sql.Open : Error : %s\n", err)
+	}
+	defer db.Close()
+
+	err = Migrate(db, "./test-no-duplicate.db")
+	if err != nil {
+		t.Fatalf("error while migrating database: %s", err.Error())
+	}
+
+	eventName := listEvents(t)[0]
+	randomConstructor := RandomGeneratorConstructors[eventName]
+
+	// insert a random event twice
+	r := rand.New(rand.NewSource(0))
+	event := randomConstructor(r)
+	err = event.Store(context.Background(), db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = event.Store(context.Background(), db)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// count the number of rows in the table
+	var count int
+	err = db.QueryRow(fmt.Sprintf("select count(*) from %s;", eventName)).Scan(&count)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, 1, count)
 
 }

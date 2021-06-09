@@ -55,13 +55,15 @@ var NoTimeFieldErr = fmt.Errorf("no time field error")
 // typeDefinition features for a type, many of the feature can be generated based on
 // each other, to simplify the code template, they are stored to be used then.
 type typeDefinition struct {
-	Name             string
-	OriginalName     string
-	Type             string
-	TimeField        *field
-	Fields           []*field
-	InsertTemplate   string // $1, $2, ...
-	ProjectedColumns string // column1, column2, ...
+	Name                      string
+	OriginalName              string
+	Type                      string
+	AllUniqueIndexName        string
+	NumberOfUserDefinedFields int
+	TimeField                 *field
+	Fields                    []*field
+	InsertTemplate            string // $1, $2, ...
+	ProjectedColumns          string // column1, column2, ...
 }
 
 // types specifies a group of typeDefinitions
@@ -100,7 +102,7 @@ func (tags tagSet) addTagField(tagName, tagField string) {
 	if _, exists := tags[tagName]; !exists {
 		panic(fmt.Errorf("there is no tag %s", tagName))
 	} else {
-		tags[tagName] += tagField + ","
+		tags[tagName] += tagField + ";"
 	}
 }
 
@@ -230,6 +232,8 @@ func readAndParseTypeMapping(r io.Reader) (*types, error) {
 		td.OriginalName = eventName
 		td.Type = mappingDetails.Type
 		td.Fields = make([]*field, 0)
+		td.AllUniqueIndexName = "all_fields_" + td.OriginalName + "_" + strconv.Itoa(len(mappingDetails.Mapping))
+		td.NumberOfUserDefinedFields = len(mappingDetails.Mapping)
 		for fld, fieldType := range mappingDetails.Mapping {
 			f := &field{}
 			f.Name = strcase.ToCamel(fld)
@@ -253,6 +257,7 @@ func readAndParseTypeMapping(r io.Reader) (*types, error) {
 			f.Tags.addTag("gorm")
 			f.Tags.addTagField("gorm", GoSQLTypeMappings[fieldType])
 			f.Tags.addTagField("gorm", "column:"+f.OriginalName)
+			f.Tags.addTagField("gorm", fmt.Sprintf("uniqueIndex:%s", td.AllUniqueIndexName))
 			f.Tags.addTag("json")
 			f.Tags.addTagField("json", f.OriginalName)
 			if f.Name == "Time" {
@@ -321,6 +326,7 @@ import (
 	"time"
 	"gorm.io/gorm"
 	"math/rand"
+	"strconv"
 )
 
 // TypeMappingSource stores the value from the environment 
@@ -399,6 +405,17 @@ func Migrate(db *sql.DB, dsn string) error{
 		if err != nil{
 			return err
 		}
+
+		// remove all previous unique indexes if there is any
+		for i := 2; i < {{$t.NumberOfUserDefinedFields}}; i++ {{"{"}}
+		indexToCheck := "all_fields_{{$t.OriginalName}}_" + strconv.Itoa(i)
+		if gdb.Migrator().HasIndex(&{{ $t.Name }}Event{}, indexToCheck) {{"{"}}
+			err = gdb.Migrator().DropIndex(&TransferCoinsEvent{}, indexToCheck)
+				if err != nil {{"{"}}
+					return err
+				{{"}"}}
+			{{"}"}}
+		{{"}"}}
 	{{ end }}
 	return nil
 }
@@ -407,7 +424,7 @@ func Migrate(db *sql.DB, dsn string) error{
 {{- range $_, $t := $.Types }}
 // Store {{ $t.Name }}Event in the database
 func (e *{{ $t.Name }}Event) Store(ctx context.Context, db *sql.DB) error {
-	stmt, err := db.Prepare("INSERT INTO {{$t.OriginalName}} ({{$t.ProjectedColumns}}) VALUES ({{$t.InsertTemplate}})")
+	stmt, err := db.Prepare("INSERT INTO {{$t.OriginalName}} ({{$t.ProjectedColumns}}) VALUES ({{$t.InsertTemplate}}) ON CONFLICT DO NOTHING;")
 	if err != nil {{"{"}}
 		return err
 	{{"}"}}
